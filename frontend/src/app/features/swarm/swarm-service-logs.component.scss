@@ -1,0 +1,24 @@
+:host {
+  .logs-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .logs-text {
+    overflow: auto;
+    height: calc(75vh - 10rem);
+    background: var(--p-surface-ground);
+    border-radius: var(--p-border-radius);
+    padding: 1rem;
+
+    code {
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-size: 0.85em;
+    }
+  }
+}

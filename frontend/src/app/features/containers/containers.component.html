@@ -46,6 +46,11 @@
               [routerLink]="'/hosts/' + h.id"
               (click)="$event.stopPropagation()">
             </p-button>
+            @if (h.host_type === 'swarm_agent') {
+              <p-tag severity="info" icon="pi pi-sitemap">
+                {{ 'SWARM.LABEL' | translate }}
+              </p-tag>
+            }
             @if (!h.enabled) {
               <p-tag severity="danger">
                 {{ 'GENERAL.DISABLED' | translate }}
@@ -55,10 +60,16 @@
         </p-accordion-header>
         <p-accordion-content>
           @if (h.enabled) {
-            <app-containers-table
-              [host]="h"
-              [onlyAvailable]="onlyAvailable()">
-            </app-containers-table>
+            @if (h.host_type === 'swarm_agent' && h.swarm_cluster_id) {
+              <app-swarm-services-inline
+                [clusterId]="h.swarm_cluster_id">
+              </app-swarm-services-inline>
+            } @else {
+              <app-containers-table
+                [host]="h"
+                [onlyAvailable]="onlyAvailable()">
+              </app-containers-table>
+            }
           }
         </p-accordion-content>
       </p-accordion-panel>

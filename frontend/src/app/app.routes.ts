@@ -56,6 +56,15 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'swarm/:clusterId/services',
+    title: titleTranslate('NAV.SWARM'),
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/swarm/swarm-services.component').then(
+        (c) => c.SwarmServicesComponent,
+      ),
+  },
+  {
     path: 'images',
     title: titleTranslate('NAV.IMAGES'),
     canActivate: [authGuard],

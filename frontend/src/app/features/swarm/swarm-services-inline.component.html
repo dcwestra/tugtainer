@@ -1,0 +1,176 @@
+<p-toolbar>
+  <ng-template #start>
+    <p-iconfield iconPosition="left">
+      <p-inputicon>
+        <i class="pi pi-search"></i>
+      </p-inputicon>
+      <input
+        pInputText
+        type="text"
+        (input)="dt.filterGlobal($event.target.value, 'contains')"
+        [placeholder]="'CONTAINERS.SEARCH_PLACEHOLDER' | translate" />
+    </p-iconfield>
+    <p-button
+      icon="pi pi-refresh"
+      [loading]="services.isLoading()"
+      text
+      rounded
+      (onClick)="services.reload()"></p-button>
+  </ng-template>
+  <ng-template #end>
+    @if (availableCount() > 0) {
+      <p-tag severity="warn">
+        {{ availableCount() }} {{ 'SWARM.SERVICES.UPDATES_AVAILABLE' | translate }}
+      </p-tag>
+    }
+    <p-button
+      icon="pi pi-search"
+      severity="secondary"
+      [loading]="isCheckingAll()"
+      [disabled]="isUpdatingAll()"
+      [label]="'SWARM.SERVICES.CHECK_ALL' | translate"
+      (onClick)="checkAll()"></p-button>
+    <p-button
+      icon="pi pi-download"
+      severity="success"
+      [loading]="isUpdatingAll()"
+      [disabled]="isCheckingAll() || availableCount() === 0"
+      [label]="'SWARM.SERVICES.UPDATE_ALL' | translate"
+      (onClick)="updateAll()"></p-button>
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  #dt
+  [globalFilterFields]="['name', 'service_id']"
+  dataKey="name"
+  sortMode="multiple"
+  [multiSortMeta]="[
+    { field: 'update_available', order: -1 },
+    { field: 'name', order: 1 },
+  ]"
+  [scrollable]="true"
+  scrollHeight="flex"
+  [value]="services.value()">
+  <ng-template #header>
+    <tr>
+      <th pSortableColumn="name">
+        {{ 'SWARM.SERVICES.NAME' | translate }}
+        <p-sortIcon field="name"></p-sortIcon>
+      </th>
+      <th style="width: 10%" pSortableColumn="replicas">
+        {{ 'SWARM.SERVICES.REPLICAS' | translate }}
+        <p-sortIcon field="replicas"></p-sortIcon>
+      </th>
+      <th style="width: 10%" pSortableColumn="update_status">
+        {{ 'SWARM.SERVICES.UPDATE_STATUS' | translate }}
+        <p-sortIcon field="update_status"></p-sortIcon>
+      </th>
+      <th style="width: 10%" pSortableColumn="check_enabled">
+        {{ 'CONTAINERS.CHECK_ENABLED' | translate }}
+        <i
+          class="pi pi-question-circle"
+          style="margin: 0 0.5rem"
+          [pTooltip]="'CONTAINERS.CHECK_HINT' | translate"
+          tooltipPosition="left"></i>
+        <p-sortIcon field="check_enabled"></p-sortIcon>
+      </th>
+      <th style="width: 10%" pSortableColumn="update_enabled">
+        {{ 'CONTAINERS.UPDATE_ENABLED' | translate }}
+        <i
+          class="pi pi-question-circle"
+          style="margin: 0 0.5rem"
+          [pTooltip]="'CONTAINERS.UPDATE_HINT' | translate"
+          tooltipPosition="left"></i>
+        <p-sortIcon field="update_enabled"></p-sortIcon>
+      </th>
+      <th style="width: 10%" pSortableColumn="update_available">
+        <i
+          class="pi pi-question-circle"
+          style="margin: 0 0.5rem"
+          [pTooltip]="'CONTAINERS.MAIN_BTN_HINT' | translate"
+          tooltipPosition="left"></i>
+        <p-sortIcon field="update_available"></p-sortIcon>
+      </th>
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-service>
+    <tr>
+      <td>
+        <p-button
+          text
+          icon="pi pi-list"
+          rounded
+          size="small"
+          [pTooltip]="'SWARM.LOGS.OPEN' | translate"
+          tooltipPosition="right"
+          (onClick)="openLogs(service)"></p-button>
+        {{ service.name }}
+        @if (service.update_available) {
+          <p-tag
+            severity="success"
+            icon="pi pi-check-circle"
+            [value]="'CONTAINERS.UPDATE_AVAILABLE' | translate"></p-tag>
+        }
+      </td>
+      <td>{{ replicasLabel(service) }}</td>
+      <td>
+        @if (service.update_status) {
+          <p-tag
+            [severity]="service.update_status === 'updating' ? 'info' : service.update_status === 'paused' ? 'warn' : 'secondary'"
+            [value]="service.update_status">
+          </p-tag>
+        } @else {
+          <span>—</span>
+        }
+      </td>
+      <td>
+        <p-togglebutton
+          severity="success"
+          [ngModel]="service.check_enabled ?? false"
+          [disabled]="patchingServices().has(service.name)"
+          (ngModelChange)="toggleCheck(service)"
+          [onLabel]="'GENERAL.ON' | translate"
+          [offLabel]="'GENERAL.OFF' | translate"
+          onIcon="pi pi-check-circle"
+          offIcon="pi pi-circle-off" />
+      </td>
+      <td>
+        <p-togglebutton
+          [ngModel]="service.update_enabled ?? false"
+          [disabled]="patchingServices().has(service.name)"
+          (ngModelChange)="toggleUpdate(service)"
+          [onLabel]="'GENERAL.ON' | translate"
+          [offLabel]="'GENERAL.OFF' | translate"
+          onIcon="pi pi-check-circle"
+          offIcon="pi pi-circle-off" />
+      </td>
+      <td style="padding-right: 0; text-align: right">
+        <p-button-group>
+          <p-button
+            [loading]="checkingServices().has(service.name)"
+            [disabled]="updatingServices().has(service.name)"
+            [label]="'CONTAINERS.CHECK' | translate"
+            (onClick)="checkService(service)"></p-button>
+          <p-button
+            severity="success"
+            [loading]="updatingServices().has(service.name)"
+            [disabled]="checkingServices().has(service.name) || !service.update_available"
+            [label]="'CONTAINERS.UPDATE' | translate"
+            (onClick)="updateService(service)"></p-button>
+        </p-button-group>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="6" style="text-align: center">
+        {{ 'SWARM.CLUSTERS.NO_SERVICES' | translate }}
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<app-swarm-service-logs [clusterId]="clusterId()"></app-swarm-service-logs>

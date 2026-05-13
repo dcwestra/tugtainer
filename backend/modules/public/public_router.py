@@ -239,10 +239,9 @@ async def is_update_available():
         data = await fetch_latest_release()
         remote_version = data.get("tag_name", "")
         release_url = data.get("html_url", "")
-    except Exception as e:
-        message = "Failed to fetch latest release"
-        logging.exception(message)
-        raise HTTPException(500, message) from e
+    except Exception:
+        logging.warning("Could not fetch latest release from GitHub — returning is_available=False")
+        return {"is_available": False, "release_url": ""}
     try:
         is_available = version.parse(remote_version) > version.parse(
             local_version

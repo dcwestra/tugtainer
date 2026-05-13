@@ -1,0 +1,129 @@
+<p-toolbar>
+  <ng-template #start>
+    <p-button
+      icon="pi pi-arrow-left"
+      text
+      severity="contrast"
+      routerLink="/hosts"></p-button>
+    <span class="cluster-title">
+      {{ 'SWARM.SERVICES.TITLE' | translate }}
+      <code>{{ clusterId }}</code>
+    </span>
+  </ng-template>
+  <ng-template #end>
+    <p-button
+      icon="pi pi-search"
+      [label]="'SWARM.SERVICES.CHECK_ALL' | translate"
+      severity="secondary"
+      [loading]="isChecking()"
+      [disabled]="isUpdating()"
+      (onClick)="checkAll()"></p-button>
+    <p-button
+      icon="pi pi-download"
+      [label]="'SWARM.SERVICES.UPDATE_ALL' | translate"
+      severity="success"
+      [loading]="isUpdating()"
+      [disabled]="isChecking() || availableCount() === 0"
+      (onClick)="updateAll()"></p-button>
+    <p-button
+      icon="pi pi-refresh"
+      text
+      [loading]="services.isLoading()"
+      (onClick)="services.reload()"></p-button>
+    @if (availableCount() > 0) {
+      <p-tag severity="warn">
+        {{ availableCount() }} {{ 'SWARM.SERVICES.UPDATES_AVAILABLE' | translate }}
+      </p-tag>
+    }
+  </ng-template>
+</p-toolbar>
+
+<p-table
+  [value]="services.value()"
+  [loading]="services.isLoading()"
+  [scrollable]="true"
+  scrollHeight="flex"
+  dataKey="name">
+  <ng-template #header>
+    <tr>
+      <th pSortableColumn="name">
+        {{ 'SWARM.SERVICES.NAME' | translate }}
+        <p-sortIcon field="name"></p-sortIcon>
+      </th>
+      <th>{{ 'SWARM.SERVICES.IMAGE' | translate }}</th>
+      <th style="width: 8rem">{{ 'SWARM.SERVICES.REPLICAS' | translate }}</th>
+      <th style="width: 8rem">{{ 'SWARM.SERVICES.UPDATE_STATUS' | translate }}</th>
+      <th style="width: 7rem">{{ 'SWARM.SERVICES.CHECK_ENABLED' | translate }}</th>
+      <th style="width: 7rem">{{ 'SWARM.SERVICES.UPDATE_ENABLED' | translate }}</th>
+      <th style="width: 9rem">{{ 'SWARM.SERVICES.UPDATE_AVAILABLE' | translate }}</th>
+      <th style="width: 10rem">{{ 'SWARM.SERVICES.CHECKED_AT' | translate }}</th>
+      <th style="width: 5rem"></th>
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-service>
+    <tr>
+      <td>
+        <strong>{{ service.name }}</strong>
+        <br />
+        <small class="text-muted">{{ service.service_id }}</small>
+      </td>
+      <td class="image-cell">
+        {{ service.image ?? '—' }}
+      </td>
+      <td>{{ replicasLabel(service) }}</td>
+      <td>
+        @if (service.update_status) {
+          <p-tag
+            [severity]="service.update_status === 'updating' ? 'info' : service.update_status === 'paused' ? 'warn' : 'secondary'">
+            {{ service.update_status }}
+          </p-tag>
+        } @else {
+          <span>—</span>
+        }
+      </td>
+      <td>
+        <p-toggleswitch
+          [ngModel]="service.check_enabled ?? false"
+          [disabled]="patchingServices().has(service.name)"
+          (onChange)="toggleCheck(service)">
+        </p-toggleswitch>
+      </td>
+      <td>
+        <p-toggleswitch
+          [ngModel]="service.update_enabled ?? false"
+          [disabled]="patchingServices().has(service.name)"
+          (onChange)="toggleUpdate(service)">
+        </p-toggleswitch>
+      </td>
+      <td>
+        @if (service.update_available) {
+          <p-tag severity="success">
+            {{ 'SWARM.SERVICES.AVAILABLE' | translate }}
+          </p-tag>
+        }
+      </td>
+      <td>{{ service.checked_at ? (service.checked_at | dayjs) : '—' }}</td>
+      <td>
+        <p-button
+          icon="pi pi-list"
+          text
+          size="small"
+          [pTooltip]="'SWARM.LOGS.OPEN' | translate"
+          tooltipPosition="left"
+          (onClick)="openLogs(service)">
+        </p-button>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="9" style="text-align: center">
+        {{ 'SWARM.CLUSTERS.NO_SERVICES' | translate }}
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<app-swarm-service-logs [clusterId]="clusterId"></app-swarm-service-logs>

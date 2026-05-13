@@ -1,0 +1,23 @@
+.cluster-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+
+  code {
+    font-size: 0.8rem;
+    opacity: 0.6;
+  }
+}
+
+.image-cell {
+  font-family: monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+  max-width: 28rem;
+}
+
+.text-muted {
+  opacity: 0.6;
+  font-size: 0.75rem;
+  font-family: monospace;
+}

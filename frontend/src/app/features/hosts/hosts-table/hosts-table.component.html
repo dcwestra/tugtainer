@@ -15,7 +15,7 @@
         icon="pi pi-refresh"
         text
         [loading]="list.isLoading()"
-        (onClick)="list.reload()"></p-button>
+        (onClick)="reloadAll()"></p-button>
     </p-iconfield>
   </ng-template>
   <ng-template #end>
@@ -31,10 +31,11 @@
   #dt2
   [globalFilterFields]="['id', 'name', 'url']"
   dataKey="id"
-  sortField="id"
+  sortField="name"
   [scrollable]="true"
   scrollHeight="flex"
   [value]="list.value()"
+  [loading]="list.isLoading()"
   selectionMode="single">
   <ng-template #header>
     <tr>
@@ -46,31 +47,55 @@
         {{ 'HOSTS.TABLE.URL' | translate }}
         <p-sortIcon field="url"></p-sortIcon>
       </th>
-      <th
-        pSortableColumn="status"
-        style="width: 20%">
+      <th style="width: 12rem">
+        {{ 'HOSTS.TABLE.UPDATES' | translate }}
+      </th>
+      <th style="width: 20%">
         {{ 'HOSTS.TABLE.STATUS' | translate }}
-        <p-sortIcon field="status"></p-sortIcon>
       </th>
     </tr>
   </ng-template>
 
-  <ng-template
-    #body
-    let-host>
+  <ng-template #body let-host>
     <tr
-      [routerLink]="'/hosts/' + host.id"
+      [routerLink]="rowLink(host)"
       style="cursor: pointer">
       <td>
+        @if (isSwarmHost(host)) {
+          <p-tag severity="secondary" styleClass="swarm-badge">
+            <i class="pi pi-sitemap"></i>
+            {{ 'HOSTS.TABLE.SWARM_CLUSTER' | translate }}
+          </p-tag>
+        }
         {{ host.name }}
         @if (!host.enabled) {
           <p-tag severity="danger">
             {{ 'GENERAL.DISABLED' | translate }}
           </p-tag>
         }
+        @if (host.swarm_cluster_id && host.host_type !== 'swarm_agent') {
+          <a
+            [routerLink]="'/swarm/' + host.swarm_cluster_id + '/services'"
+            (click)="$event.stopPropagation()"
+            class="swarm-services-link">
+            <i class="pi pi-external-link"></i>
+            {{ 'HOSTS.TABLE.SWARM_SERVICES_LINK' | translate }}
+          </a>
+        }
       </td>
+      <td>{{ host.url }}</td>
       <td>
-        {{ host.url }}
+        @if (isSwarmHost(host) && clusterUpdateCount(host) > 0) {
+          <p-tag severity="warn">
+            {{ clusterUpdateCount(host) }} {{ 'SWARM.CLUSTERS.UPDATES' | translate }}
+          </p-tag>
+        } @else if (!isSwarmHost(host) && host.available_updates_count > 0) {
+          <p-tag severity="warn">
+            {{ host.available_updates_count }} {{ 'HOSTS.TABLE.UPDATES' | translate }}
+          </p-tag>
+        } @else {
+          <span style="opacity: 0.5">—</span>
+        }
       </td>
       <td>
         <app-host-status [host]="host"></app-host-status>

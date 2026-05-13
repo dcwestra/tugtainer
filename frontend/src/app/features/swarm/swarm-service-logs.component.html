@@ -1,0 +1,46 @@
+<p-dialog
+  [header]="(service()?.name ?? '') + ' — ' + ('SWARM.LOGS.TITLE' | translate)"
+  [visible]="visible()"
+  (visibleChange)="visible.set($event)"
+  [modal]="true"
+  [style]="{ width: '80vw', height: '75vh' }"
+  [draggable]="false"
+  [resizable]="false">
+
+  <div class="logs-toolbar">
+    <p-ifta-label>
+      <p-input-number
+        inputId="swarm-logs-tail"
+        [ngModel]="tail()"
+        (ngModelChange)="tail.set($event)"
+        [min]="1"
+        [max]="10000">
+      </p-input-number>
+      <label for="swarm-logs-tail">
+        {{ 'SWARM.LOGS.TAIL' | translate }}
+      </label>
+    </p-ifta-label>
+
+    <app-boolean-field>
+      <p-toggle-switch
+        inputId="swarm-logs-timestamps"
+        [ngModel]="timestamps()"
+        (ngModelChange)="timestamps.set($event)">
+      </p-toggle-switch>
+      <label for="swarm-logs-timestamps">
+        {{ 'SWARM.LOGS.TIMESTAMPS' | translate }}
+      </label>
+    </app-boolean-field>
+
+    <p-button
+      icon="pi pi-refresh"
+      [label]="'GENERAL.REFRESH' | translate"
+      [loading]="logs.isLoading()"
+      (onClick)="logs.reload()">
+    </p-button>
+  </div>
+
+  <section class="logs-text">
+    <code>{{ logs.value() ?? '' }}</code>
+  </section>
+</p-dialog>

@@ -95,6 +95,39 @@
           </p-iftaLabel>
 
           <p-iftaLabel style="width: 100%">
+            <p-select
+              fluid
+              inputId="host-type"
+              formControlName="host_type"
+              [options]="hostTypeOptions"
+              optionLabel="label"
+              optionValue="value">
+            </p-select>
+            <label for="host-type">
+              {{ 'HOSTS.CARD.GENERAL.HOST_TYPE' | translate }}
+            </label>
+          </p-iftaLabel>
+
+          @if (isSwarmAgent()) {
+            <p-iftaLabel style="width: 100%">
+              <input
+                fluid
+                pInputText
+                id="host-swarm-cluster-name"
+                formControlName="swarm_cluster_name"
+                [placeholder]="'HOSTS.CARD.GENERAL.SWARM_CLUSTER_NAME_PLACEHOLDER' | translate" />
+              <label for="host-swarm-cluster-name">
+                {{ 'HOSTS.CARD.GENERAL.SWARM_CLUSTER_NAME' | translate }}
+                <i
+                  class="pi pi-question-circle"
+                  style="margin: 0 0.5rem"
+                  [pTooltip]="'HOSTS.CARD.GENERAL.SWARM_CLUSTER_NAME_HINT' | translate"
+                  tooltipPosition="left"></i>
+              </label>
+            </p-iftaLabel>
+          }
+
+          <p-iftaLabel style="width: 100%">
             <input
               fluid
               pInputText

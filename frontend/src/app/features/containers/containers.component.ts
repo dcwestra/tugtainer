@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { ContainersTableComponent } from './containers-table/containers-table.component';
+import { SwarmServicesInlineComponent } from '../swarm/swarm-services-inline.component';
 import { AccordionModule } from 'primeng/accordion';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -32,6 +33,7 @@ const onlyAvailableStorageKey = 'tugtainer-containers-only-available';
   selector: 'app-containers',
   imports: [
     ContainersTableComponent,
+    SwarmServicesInlineComponent,
     AccordionModule,
     TagModule,
     ButtonModule,

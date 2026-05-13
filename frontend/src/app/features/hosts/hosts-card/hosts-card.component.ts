@@ -21,6 +21,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AccordionModule } from 'primeng/accordion';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
+import { SelectModule } from 'primeng/select';
 import { FieldsetModule } from 'primeng/fieldset';
 import { FluidModule } from 'primeng/fluid';
 import { IftaLabelModule } from 'primeng/iftalabel';
@@ -29,7 +30,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { finalize, map } from 'rxjs';
 import { ToastService } from 'src/app/core/services/toast.service';
 import { HostsApiService } from 'src/app/features/hosts/hosts-api.service';
-import { ICreateHost, IHostInfo } from 'src/app/features/hosts/hosts.interface';
+import { EHostType, ICreateHost, IHostInfo } from 'src/app/features/hosts/hosts.interface';
 import { TInterfaceToForm } from '@shared/types/interface-to-form.type';
 import { RouterLink } from '@angular/router';
 import { ButtonGroup } from 'primeng/buttongroup';
@@ -66,6 +67,7 @@ import { BooleanFieldComponent } from '@shared/components/boolean-field/boolean-
     IconFieldModule,
     InputIconModule,
     BooleanFieldComponent,
+    SelectModule,
   ],
   providers: [ConfirmationService],
   templateUrl: './hosts-card.component.html',
@@ -95,6 +97,15 @@ export class HostsCardComponent implements OnInit {
     string | number | string[] | number[]
   >(['help', 'main']);
 
+  protected readonly hostTypeOptions = [
+    { label: 'Standalone Agent', value: 'standalone' as EHostType },
+    { label: 'Swarm Manager Agent', value: 'swarm_agent' as EHostType },
+  ];
+
+  protected readonly isSwarmAgent = computed(
+    () => this.form.controls.host_type.value === 'swarm_agent',
+  );
+
   private get defaultFormValues(): Partial<ICreateHost> {
     return {
       enabled: true,
@@ -103,6 +114,8 @@ export class HostsCardComponent implements OnInit {
       timeout: 5,
       container_hc_timeout: 60,
       ssl: true,
+      host_type: 'standalone',
+      swarm_cluster_name: null,
     };
   }
 
@@ -132,6 +145,8 @@ export class HostsCardComponent implements OnInit {
     ssl: new FormControl<boolean>(true),
     timeout: new FormControl<number>(null, [Validators.required]),
     container_hc_timeout: new FormControl(null, [Validators.required]),
+    host_type: new FormControl<EHostType>('standalone', [Validators.required]),
+    swarm_cluster_name: new FormControl<string>(null),
   });
 
   ngOnInit(): void {
