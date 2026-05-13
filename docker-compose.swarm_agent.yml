@@ -1,0 +1,34 @@
+networks:
+  tugtainer_swarm_agent:
+    driver: overlay
+
+services:
+  swarm-agent:
+    image: ghcr.io/quenary/tugtainer-swarm-agent:1
+    # The swarm agent must run on a Docker Swarm manager node.
+    # It requires direct socket access — socket proxy is not recommended
+    # because swarm APIs (service/node/swarm endpoints) are not proxied
+    # by most socket proxy implementations.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Required: shared secret for request signing between backend and agent.
+      # Must match the secret configured when adding this host in Tugtainer.
+      AGENT_SECRET: CHANGE_ME!
+      # Optional: human-readable label for this swarm cluster.
+      # If omitted, the cluster is identified by its Docker-assigned cluster ID.
+      # SWARM_CLUSTER_LABEL: my-production-cluster
+    ports:
+      - '9414:8001'
+    networks:
+      - tugtainer_swarm_agent
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        dev.quenary.tugtainer.protected: "true"

@@ -10,6 +10,7 @@ from backend.core.agent_client import (
     load_agents_on_init,
 )
 from backend.core.cron_manager import schedule_actions_on_init
+from backend.core.swarm_detection import detect_local_swarm_clusters
 from backend.exception import TugAgentClientError
 from backend.modules.auth.auth_router import (
     auth_router as auth_router,
@@ -30,6 +31,9 @@ from backend.modules.settings.settings_router import (
     settings_router as settings_router,
 )
 from backend.modules.settings.settings_storage import SettingsStorage
+from backend.modules.swarm.swarm_router import (
+    swarm_router as swarm_router,
+)
 from shared.util.endpoint_logging_filter import EndpointLoggingFilter
 
 logging.basicConfig(
@@ -54,6 +58,7 @@ uvicorn_logger.addFilter(
 async def lifespan(app: FastAPI):
     # Code to run on startup
     await load_agents_on_init()
+    await detect_local_swarm_clusters()
     await SettingsStorage.load_all()
     await schedule_actions_on_init()
     yield  # App
@@ -68,6 +73,7 @@ app.include_router(public_router)
 app.include_router(settings_router)
 app.include_router(images_router)
 app.include_router(hosts_router)
+app.include_router(swarm_router)
 
 
 @app.exception_handler(ClientError)

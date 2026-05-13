@@ -9,6 +9,7 @@ from backend.db.session import async_engine
 from backend.modules.containers.containers_model import *  # noqa: F403
 from backend.modules.hosts.hosts_model import *  # noqa: F403
 from backend.modules.settings.settings_model import *  # noqa: F403
+from backend.modules.swarm.swarm_model import *  # noqa: F403
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -21,6 +21,7 @@ from backend.enums.action_status_enum import EActionStatus
 from backend.modules.hosts.hosts_model import HostsModel
 
 from .update_host_containers import update_host_containers
+from .update_swarm_services import update_all_swarm_clusters
 
 
 async def update_all_containers():
@@ -82,12 +83,18 @@ async def update_all_containers():
                 },
             }
         )
+
+        # Also update swarm clusters on the same schedule
+        swarm_results = []
         try:
-            await send_check_notification(results)
+            swarm_results = await update_all_swarm_clusters()
         except Exception:
-            logger.exception(
-                "Failed to send notification after update"
-            )
+            logger.exception("Failed to update swarm clusters")
+
+        try:
+            await send_check_notification(results, swarm_results=swarm_results or None)
+        except Exception:
+            logger.exception("Failed to send notification after update")
 
     except Exception:
         cache.update({"status": EActionStatus.ERROR})

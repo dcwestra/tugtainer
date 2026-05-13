@@ -14,6 +14,7 @@ from backend.enums.action_status_enum import EActionStatus
 from backend.modules.hosts.hosts_model import HostsModel
 
 ALL_CONTAINERS_STATUS_KEY = str(uuid.uuid4())
+ALL_SWARM_CLUSTERS_STATUS_KEY = str(uuid.uuid4())
 
 
 def get_host_cache_key(host: HostsModel) -> str:
@@ -28,6 +29,14 @@ def get_container_cache_key(
     host: HostsModel, container: ContainerInspectResult
 ) -> str:
     return f"{get_host_cache_key(host)}:{container.name}"
+
+
+def get_swarm_cluster_cache_key(cluster_id: str) -> str:
+    return f"swarm:{cluster_id}"
+
+
+def get_swarm_service_cache_key(cluster_id: str, service_name: str) -> str:
+    return f"swarm:{cluster_id}:{service_name}"
 
 
 def is_allowed_start_cache(

@@ -36,6 +36,7 @@ from shared.schemas.image_schemas import (
 )
 from shared.schemas.manifest_schema import ManifestInspectSchema
 from shared.schemas.network_schemas import NetworkDisconnectBodySchema
+from shared.schemas.service_schemas import ServiceUpdateRequestBody, SwarmInfoSchema
 from shared.util.custom_json_dumps import custom_json_dumps
 from shared.util.signature import get_signature_headers
 
@@ -95,6 +96,7 @@ class AgentClient:
         body: dict | BaseModel | None = None,
         params: Query | None = None,
         timeout: int | float | None = None,
+        log_errors: bool = True,
     ) -> Any | None:
         if not timeout:
             timeout = self._timeout
@@ -126,7 +128,8 @@ class AgentClient:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError as e:
                     message = "Agent request error"
-                    self._logger.exception(message)
+                    if log_errors:
+                        self._logger.exception(message)
                     try:
                         error_body = await resp.json()
                     except Exception:
@@ -382,6 +385,68 @@ class AgentClientCommon:
         )
         return DockerVersionScheme.model_validate(data)
 
+    async def swarm_info(self) -> SwarmInfoSchema | None:
+        """Return swarm info if the agent's Docker is a swarm manager, else None."""
+        try:
+            data = await self._agent_client._request(
+                "GET", "/api/common/swarm_info", log_errors=False
+            )
+            return SwarmInfoSchema.model_validate(data) if data else None
+        except TugAgentClientError as e:
+            if e.status == 404:
+                return None
+            raise
+
+
+class AgentClientSwarmInfo:
+    def __init__(self, agent_client: AgentClient):
+        self._agent_client = agent_client
+
+    async def info(self) -> SwarmInfoSchema:
+        data = await self._agent_client._request("GET", "/api/swarm/info")
+        return SwarmInfoSchema.model_validate(data)
+
+
+class AgentClientService:
+    def __init__(self, agent_client: AgentClient):
+        self._agent_client = agent_client
+
+    async def list(self) -> list[dict]:
+        data = await self._agent_client._request("GET", "/api/service/list")
+        return data or []
+
+    async def inspect(self, name_or_id: str) -> dict:
+        return await self._agent_client._request(
+            "GET", f"/api/service/inspect/{name_or_id}"
+        )
+
+    async def update(self, body: ServiceUpdateRequestBody) -> str:
+        data = await self._agent_client._request(
+            "POST",
+            "/api/service/update",
+            body,
+            timeout=self._agent_client._long_timeout,
+        )
+        return str(data)
+
+    async def logs(self, name_or_id: str, tail: int = 100, timestamps: bool = False) -> str:
+        data = await self._agent_client._request(
+            "GET",
+            f"/api/service/logs/{name_or_id}",
+            params={"tail": str(tail), "timestamps": str(timestamps).lower()},
+            timeout=self._agent_client._long_timeout,
+        )
+        return str(data) if data else ""
+
+
+class SwarmAgentClient(AgentClient):
+    """AgentClient extended with swarm-specific namespaces."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.swarm_info: Final = AgentClientSwarmInfo(self)
+        self.service: Final = AgentClientService(self)
+
 
 async def load_agents_on_init():
     """Get hosts from db and init clients"""
@@ -423,6 +488,8 @@ class AgentClientManager:
 
     @classmethod
     def _create_client(cls, host: HostsModel) -> AgentClient:
+        from backend.enums.host_type_enum import EHostType
+
         info = HostInfo.model_validate(host)
         allowed_keys = signature(AgentClient.__init__).parameters
         filtered = {
@@ -430,7 +497,21 @@ class AgentClientManager:
             for k, v in info.model_dump(exclude_unset=True).items()
             if k in allowed_keys and v is not None
         }
+        # Use SwarmAgentClient for explicit swarm agents OR for standalone hosts
+        # that have been auto-detected as swarm managers (swarm_cluster_id is set).
+        if host.host_type == EHostType.SWARM_AGENT or (
+            host.host_type == EHostType.STANDALONE and host.swarm_cluster_id
+        ):
+            return SwarmAgentClient(**filtered)
         return AgentClient(**filtered)
+
+    @classmethod
+    def get_swarm_client(cls, host: HostsModel) -> SwarmAgentClient:
+        """Get client as SwarmAgentClient — only valid for swarm_agent hosts."""
+        client = cls.get_host_client(host)
+        if not isinstance(client, SwarmAgentClient):
+            raise TypeError(f"Host {host.id} is not a swarm agent")
+        return client
 
     @classmethod
     def get_all(cls) -> list[tuple[int, AgentClient]]:

@@ -1,6 +1,8 @@
 
 from pydantic import BaseModel, ConfigDict
 
+from backend.enums.host_type_enum import EHostType
+
 
 class HostBase(BaseModel):
     name: str
@@ -12,11 +14,14 @@ class HostBase(BaseModel):
     ssl: bool
     timeout: int
     container_hc_timeout: int
+    host_type: EHostType = EHostType.STANDALONE
+    swarm_cluster_name: str | None = None
 
 
 class HostInfo(HostBase):
     id: int
     available_updates_count: int = 0
+    swarm_cluster_id: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

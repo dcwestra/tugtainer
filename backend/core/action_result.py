@@ -18,6 +18,15 @@ ContainerCheckResultType = Literal[
     None,
 ]
 
+SwarmServiceCheckResultType = Literal[
+    "not_available",
+    "available",
+    "available(notified)",
+    "updated",
+    "failed",
+    None,
+]
+
 
 @dataclass
 class ContainerActionResult:
@@ -28,6 +37,24 @@ class ContainerActionResult:
     remote_image: ImageInspectResult | None = None
     local_digests: list[str] = field(default_factory=list)
     remote_digests: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SwarmServiceActionResult:
+    service_name: str
+    service_id: str
+    result: SwarmServiceCheckResultType | None = None
+    image_spec: str | None = None
+    local_digest: str | None = None
+    remote_digest: str | None = None
+
+
+@dataclass
+class SwarmClusterActionResult:
+    cluster_id: str
+    cluster_name: str
+    items: list[SwarmServiceActionResult] = field(default_factory=list)
+    prune_result: str | None = None
 
 
 @dataclass

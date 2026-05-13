@@ -1,0 +1,33 @@
+# Swarm Agent build
+FROM python:3.13 AS agent-builder
+WORKDIR /app
+RUN pip install --no-cache-dir uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev
+
+# Runtime image
+FROM python:3.13-slim AS runtime
+WORKDIR /app
+ARG VERSION
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl docker-cli \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+COPY swarm_agent /app/swarm_agent
+COPY shared /app/shared
+
+COPY --from=agent-builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+COPY .env* /app/
+RUN echo "$VERSION" > /app/version
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8001/api/public/health || exit 1
+
+ENTRYPOINT ["uvicorn", "swarm_agent.app:app"]
+CMD ["--host", "0.0.0.0", "--port", "8001", "--log-level", "warning"]

@@ -1,9 +1,12 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.agent_client import AgentClientManager
 from backend.db.session import get_async_session
+from backend.enums.host_type_enum import EHostType
 from backend.exception import TugAgentClientError
 from backend.modules.auth.auth_util import is_authorized
 from backend.modules.hosts.hosts_util import (
@@ -17,6 +20,8 @@ from .hosts_schemas import (
     HostInfo,
     HostStatusResponseBody,
 )
+
+logger = logging.getLogger(__name__)
 
 hosts_router = APIRouter(
     prefix="/hosts",
@@ -63,6 +68,10 @@ async def create(
     await session.refresh(new_host)
     if new_host.enabled:
         await AgentClientManager.set_client(new_host)
+
+    if new_host.host_type == EHostType.SWARM_AGENT:
+        await _populate_swarm_cluster_id(new_host, session)
+
     host_dto = HostInfo.model_validate(new_host)
     await annotate_available_updates_count([host_dto], session)
     return host_dto
@@ -94,6 +103,7 @@ async def update(
     session: AsyncSession = Depends(get_async_session),
 ):
     host = await get_host(id, session)
+    url_changed = body.url != host.url
     for key, value in body.model_dump(exclude_unset=True).items():
         if getattr(host, key) != value:
             setattr(host, key, value)
@@ -102,6 +112,11 @@ async def update(
     await AgentClientManager.remove_client(host.id)
     if host.enabled:
         await AgentClientManager.set_client(host)
+
+    # Re-fetch cluster ID if the host is a swarm agent and its URL changed
+    if host.host_type == EHostType.SWARM_AGENT and url_changed:
+        await _populate_swarm_cluster_id(host, session)
+
     host_dto = HostInfo.model_validate(host)
     await annotate_available_updates_count([host_dto], session)
     return host_dto
@@ -152,3 +167,46 @@ async def get_status(
             ok=False,
             err=f"Unknown error\n{str(e)}",
         )
+
+
+async def _populate_swarm_cluster_id(
+    host: HostsModel,
+    session: AsyncSession,
+) -> None:
+    """
+    Fetch swarm info from a newly registered swarm agent, store its cluster ID,
+    and guard against duplicate cluster registrations.
+    """
+    try:
+        client = AgentClientManager.get_swarm_client(host)
+        info = await client.swarm_info.info()
+    except Exception:
+        logger.exception(
+            f"Failed to fetch swarm info from host {host.id}.{host.name} — "
+            "cluster_id will be populated when the agent becomes reachable"
+        )
+        return
+
+    # Duplicate cluster guard
+    stmt = (
+        select(HostsModel)
+        .where(
+            HostsModel.swarm_cluster_id == info.cluster_id,
+            HostsModel.id != host.id,
+        )
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            409,
+            f"A swarm agent for cluster '{info.cluster_id}' is already registered "
+            f"as host '{existing.name}'. Each cluster requires only one manager agent.",
+        )
+
+    host.swarm_cluster_id = info.cluster_id
+    if info.cluster_label and not host.swarm_cluster_name:
+        host.swarm_cluster_name = info.cluster_label
+    await session.commit()
+    await session.refresh(host)

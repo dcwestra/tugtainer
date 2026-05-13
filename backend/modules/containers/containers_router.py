@@ -47,6 +47,7 @@ from backend.core.update_actions.update_host_containers import (
     update_host_containers,
 )
 from backend.db.session import get_async_session
+from backend.enums.host_type_enum import EHostType
 from backend.modules.auth.auth_util import is_authorized
 from backend.modules.hosts.hosts_model import HostsModel
 from backend.modules.hosts.hosts_util import get_host
@@ -99,6 +100,8 @@ async def containers_list(
     session: AsyncSession = Depends(get_async_session),
 ) -> list[ContainersListItem]:
     host = await get_host(host_id, session)
+    if host.host_type == EHostType.SWARM_AGENT:
+        return []
     _raise_for_host_status(host)
     client = AgentClientManager.get_host_client(host)
     containers = await client.container.list(GetContainerListBodySchema(all=True))

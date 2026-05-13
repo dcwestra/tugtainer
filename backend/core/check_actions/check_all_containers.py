@@ -18,9 +18,11 @@ from backend.core.progress.progress_util import (
 )
 from backend.db.session import async_session_maker
 from backend.enums.action_status_enum import EActionStatus
+from backend.enums.host_type_enum import EHostType
 from backend.modules.hosts.hosts_model import HostsModel
 
 from .check_host_containers import check_host_containers
+from .check_swarm_services import check_all_swarm_clusters
 
 
 async def check_all_containers(
@@ -56,6 +58,8 @@ async def check_all_containers(
         )
         results: list[HostActionResult] = []
         for host in hosts:
+            if host.host_type == EHostType.SWARM_AGENT:
+                continue
             try:
                 client = AgentClientManager.get_host_client(host)
                 result = await check_host_containers(host, client, manual)
@@ -70,8 +74,16 @@ async def check_all_containers(
                 "result": {item.host_id: item for item in results if item},
             }
         )
+
+        # Also check swarm clusters on the same schedule
+        swarm_results = []
         try:
-            await send_check_notification(results)
+            swarm_results = await check_all_swarm_clusters(manual)
+        except Exception:
+            logger.exception("Failed to check swarm clusters")
+
+        try:
+            await send_check_notification(results, swarm_results=swarm_results or None)
         except Exception:
             logger.exception("Failed to send notification")
 

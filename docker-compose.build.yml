@@ -5,7 +5,7 @@ services:
   app:
     container_name: tugtainer
     build:
-      context: https://github.com/Quenary/tugtainer.git#latest
+#      context: https://github.com/Quenary/tugtainer.git#latest
       dockerfile: Dockerfile.app
       args:
         VERSION: my latest build

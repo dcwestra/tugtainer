@@ -9,6 +9,8 @@ from backend.config import Config
 from backend.core.action_result import (
     ContainerActionResult,
     HostActionResult,
+    SwarmClusterActionResult,
+    SwarmServiceActionResult,
 )
 from backend.exception import TugNotificationException
 from backend.modules.settings.settings_enum import ESettingKey
@@ -28,13 +30,22 @@ def any_worthy(items: list[ContainerActionResult]) -> bool:
     )
 
 
+def any_swarm_worthy(items: list[SwarmServiceActionResult]) -> bool:
+    return any(
+        item.result in ["available", "updated", "failed"]
+        for item in items
+    )
+
+
 tt_sentinel = object()
 bt_sentinel = object()
 u_sentinel = object()
+sr_sentinel = object()
 
 
 async def send_check_notification(
     results: list[HostActionResult],
+    swarm_results: list[SwarmClusterActionResult] | None = cast(None, sr_sentinel),
     title_template: str | None = cast(None, tt_sentinel),
     body_template: str | None = cast(None, bt_sentinel),
     urls: str | None = cast(None, u_sentinel),
@@ -48,6 +59,8 @@ async def send_check_notification(
     """
     logger: Final = logging.getLogger("send_check_notification")
     try:
+        if swarm_results is sr_sentinel:
+            swarm_results = None
         if title_template == tt_sentinel:
             title_template = SettingsStorage.get(
                 ESettingKey.NOTIFICATION_TITLE_TEMPLATE
@@ -69,8 +82,10 @@ async def send_check_notification(
             keep_trailing_newline=False,
         )
         jinja2_env.filters["any_worthy"] = any_worthy
+        jinja2_env.filters["any_swarm_worthy"] = any_swarm_worthy
         context: Final = {
             "results": results,
+            "swarm_results": swarm_results or [],
             "hostname": Config.HOSTNAME,
         }
 

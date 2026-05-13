@@ -57,6 +57,18 @@ class HostsModel(BaseModel):
     container_hc_timeout: Mapped[int] = mapped_column(
         Integer, nullable=False, default=60, server_default=text("60")
     )
+    host_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="standalone",
+        server_default=text("'standalone'"),
+    )
+    swarm_cluster_id: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )
+    swarm_cluster_name: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )
 
     containers: Mapped[list["ContainersModel"]] = relationship(
         "ContainersModel",
