@@ -44,18 +44,18 @@ describe('NewPasswordFormComponent', () => {
   });
 
   it('should have invalid form initially', () => {
-    expect(component['form'].invalid).toBeTrue();
+    expect(component['form'].invalid).toBe(true);
   });
 
   it('should validate matching passwords', () => {
     setValidPasswords();
-    expect(component['form'].valid).toBeTrue();
+    expect(component['form'].valid).toBe(true);
     expect(component['form'].errors).toBeNull();
   });
 
   it('should invalidate when passwords do not match', () => {
     setInvalidPasswords();
-    expect(component['form'].invalid).toBeTrue();
+    expect(component['form'].invalid).toBe(true);
     expect(component['form'].errors).toEqual({
       passwordMatchValidator: true,
     });
@@ -65,16 +65,16 @@ describe('NewPasswordFormComponent', () => {
     setInvalidPasswords();
     fixture.detectChanges();
 
-    expect(component['confirmPasswordError']()).toBeTrue();
+    expect(component['confirmPasswordError']()).toBe(true);
 
     setValidPasswords();
     fixture.detectChanges();
 
-    expect(component['confirmPasswordError']()).toBeFalse();
+    expect(component['confirmPasswordError']()).toBe(false);
   });
 
   it('should not emit when form is invalid', () => {
-    spyOn(component.OnSubmit, 'emit');
+    jest.spyOn(component.OnSubmit, 'emit');
 
     component['onSubmit']();
 
@@ -82,7 +82,7 @@ describe('NewPasswordFormComponent', () => {
   });
 
   it('should emit form value when valid', () => {
-    spyOn(component.OnSubmit, 'emit');
+    jest.spyOn(component.OnSubmit, 'emit');
 
     setValidPasswords();
     component['form'].markAsDirty();
@@ -101,13 +101,13 @@ describe('NewPasswordFormComponent', () => {
 
     component['onSubmit']();
 
-    expect(component['form'].pristine).toBeTrue();
+    expect(component['form'].pristine).toBe(true);
   });
 
   it('should disable submit button when form is not dirty', () => {
     const button = fixture.debugElement.query(By.css('p-button'));
 
-    expect(button.componentInstance.disabled).toBeTrue();
+    expect(button.componentInstance.disabled).toBe(true);
   });
 
   it('should enable submit button when form is dirty', () => {
@@ -116,6 +116,6 @@ describe('NewPasswordFormComponent', () => {
 
     const button = fixture.debugElement.query(By.css('p-button'));
 
-    expect(button.componentInstance.disabled).toBeFalse();
+    expect(button.componentInstance.disabled).toBe(false);
   });
 });

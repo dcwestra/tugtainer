@@ -10,14 +10,12 @@ import { AuthApiService } from 'src/app/features/auth/auth-api.service';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 describe('authGuard', () => {
-  let authApiServiceMock: jasmine.SpyObj<AuthApiService>;
-  let routerMock: jasmine.SpyObj<Router>;
+  let authApiServiceMock: jest.Mocked<AuthApiService>;
+  let routerMock: jest.Mocked<Router>;
 
   beforeEach(() => {
-    authApiServiceMock = jasmine.createSpyObj('AuthApiService', [
-      'isAuthorized',
-    ]);
-    routerMock = jasmine.createSpyObj('Router', ['navigate']);
+    authApiServiceMock = { isAuthorized: jest.fn() } as unknown as jest.Mocked<AuthApiService>;
+    routerMock = { navigate: jest.fn() } as unknown as jest.Mocked<Router>;
 
     TestBed.configureTestingModule({
       providers: [
@@ -39,22 +37,22 @@ describe('authGuard', () => {
   }
 
   it('should return true when user is authorized', (done) => {
-    authApiServiceMock.isAuthorized.and.returnValue(of(null));
+    authApiServiceMock.isAuthorized.mockReturnValue(of(null));
 
     runGuard().subscribe((result) => {
-      expect(result).toBeTrue();
+      expect(result).toBe(true);
       expect(routerMock.navigate).not.toHaveBeenCalled();
       done();
     });
   });
 
   it('should return false and redirect when unauthorized (error)', (done) => {
-    authApiServiceMock.isAuthorized.and.returnValue(
+    authApiServiceMock.isAuthorized.mockReturnValue(
       throwError(() => new Error('Unauthorized')),
     );
 
     runGuard().subscribe((result) => {
-      expect(result).toBeFalse();
+      expect(result).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['/auth']);
       done();
     });

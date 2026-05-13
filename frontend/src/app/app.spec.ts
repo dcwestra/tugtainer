@@ -23,37 +23,32 @@ describe('App', () => {
   let component: App;
 
   let harness: RouterTestingHarness;
-  let authApiServiceMock: jasmine.SpyObj<AuthApiService>;
-  let publicApiServiceMock: jasmine.SpyObj<PublicApiService>;
-  let toastServiceMock: jasmine.SpyObj<ToastService>;
+  let authApiServiceMock: jest.Mocked<AuthApiService>;
+  let publicApiServiceMock: jest.Mocked<PublicApiService>;
+  let toastServiceMock: jest.Mocked<ToastService>;
 
   beforeEach(async () => {
-    authApiServiceMock = jasmine.createSpyObj<AuthApiService>(
-      'AuthApiService',
-      ['initiateLogin'],
-      {
-        isAuthorized: jasmine
-          .createSpy('isAuthorized')
-          .and.returnValue(of(null)),
-        isDisabled: jasmine.createSpy('isDisabled').and.returnValue(of(false)),
-        logout: jasmine.createSpy('isPasswordSet').and.returnValue(of({})),
-      },
-    );
-    publicApiServiceMock = jasmine.createSpyObj('PublicApiService', [], {
-      getVersion: jasmine
-        .createSpy('getVersion')
-        .and.returnValue(of({ image_version: '1.2.3' })),
-      isUpdateAvailable: jasmine.createSpy('isUpdateAvailable').and.returnValue(
+    authApiServiceMock = {
+      initiateLogin: jest.fn(),
+      isAuthorized: jest.fn().mockReturnValue(of(null)),
+      isDisabled: jest.fn().mockReturnValue(of(false)),
+      logout: jest.fn().mockReturnValue(of({})),
+    } as unknown as jest.Mocked<AuthApiService>;
+
+    publicApiServiceMock = {
+      getVersion: jest.fn().mockReturnValue(of({ image_version: '1.2.3' })),
+      isUpdateAvailable: jest.fn().mockReturnValue(
         of({
           is_available: false,
           release_url: null,
         } satisfies IsUpdateAvailableResponseBody),
       ),
-    });
-    toastServiceMock = jasmine.createSpyObj('ToastService', [
-      'success',
-      'error',
-    ]);
+    } as unknown as jest.Mocked<PublicApiService>;
+
+    toastServiceMock = {
+      success: jest.fn(),
+      error: jest.fn(),
+    } as unknown as jest.Mocked<ToastService>;
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -95,13 +90,13 @@ describe('App', () => {
   it('should hide toolbar', async () => {
     fixture.detectChanges();
     await harness.navigateByUrl('/auth');
-    expect(component['isToolbarVisible']()).toBeFalse();
+    expect(component['isToolbarVisible']()).toBe(false);
   });
 
   it('should show toolbar', async () => {
     fixture.detectChanges();
     await harness.navigateByUrl('/containers');
-    expect(component['isToolbarVisible']()).toBeTrue();
+    expect(component['isToolbarVisible']()).toBe(true);
   });
 
   // TODO add more tests
